@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"html/template"
 	"io"
-	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -17,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	ttemplate "text/template"
 	"time"
 
 	"code.google.com/p/go.net/proxy"
@@ -146,81 +146,22 @@ func (srv *Server) ServeHTTP(l net.Listener) error {
 	return sv.Serve(l)
 }
 
-var tpl = template.Must(template.New("stat").Parse(`<!DOCTYPE html>
-<html lang="ja">
-<meta charset="utf-8">
-<title>プロキシについて</title>
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<link href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet">
-<script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
-<body>
-  <div class="container">
-    <h1>プロキシについて</h1>
-
-    <p><button type="button" class="btn btn-primary" onclick="location.href='/reload';return false">設定をリロード</button></p>
-
-    <h2>現在使用しているプロキシ</h2>
-    <p>現在以下のプロキシを使用しています。</p>
-    <table class="table table-bordered">
-      <tbody>
-        <tr>
-          <th>設定名</th>
-          <td>
-            {{.config.UseProxy}}
-          </td>
-        </tr>
-        <tr>
-          <th>ホスト名</th>
-          <td>
-            {{.proxy.Host}}:{{.proxy.HTTPPort}}<small class="text-muted">(HTTP)</small><br>
-            {{.proxy.Host}}:{{.proxy.SOCKSPort}}<small class="text-muted">(SOCKS)</small>
-          </td>
-        </tr>
-        <tr>
-          <th>ユーザー名</th>
-          <td>{{.proxy.Username}}</td>
-        </tr>
-        <tr>
-          <th>パスワード</th>
-          <td>{{.proxy.Password}}</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <h2>リバースプロキシマッピング</h2>
-    <p>マップ元に接続するとプロキシ設定なしで直接目的の場所に接続できます。</p>
-    <table class="table table-bordered table-hover">
-      <thead>
-        <tr>
-          <th>マップ元</th>
-          <th>接続先</th>
-        </tr>
-      </thead>
-      <tbody>
-        {{$addr := .address}}
-        {{range .config.ReverseMap}}
-          <tr>
-            <td>{{$addr}}:{{.Port}}</td>
-            <td>{{.ConnectTo}}</td>
-          </tr>
-        {{else}}
-          <tr>
-            <td colspan="2">現在有効なマッピング設定はありません。</td>
-          </tr>
-        {{end}}
-      </tbody>
-    </table>
-  </div>
-</body>
-</html>`))
-
 // ServeStat はプロキシサーバの設定情報を Web ページとして返す。
 func (srv *Server) ServeStat(w http.ResponseWriter, r *http.Request) {
-	tpl.ExecuteTemplate(w, "stat", map[string]interface{}{
-		"proxy":   srv.proxy,
-		"config":  config,
-		"address": *address,
+	tpl, err := template.ParseFiles(*proxyHtml)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	err = tpl.Execute(w, map[string]interface{}{
+		"Proxy":   srv.proxy,
+		"Config":  config,
+		"IPAddress": *address,
 	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 // Reload はプロキシサーバの設定情報を更新する。
@@ -232,21 +173,31 @@ func (srv *Server) Reload(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
+// renderError は proxy.pac を返す際にエラーが起きて意図していない場所に繋がってしまわないよう嘘のプロキシを返す。
+func renderError(err error, w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/x-ns-proxy-autoconfig")
+	w.Write([]byte(`/* Proxy.pac loading error. */ function FindProxyForURL(url, host) { return 'PROXY 0.0.0.0:8888'; }`))
+}
+
 // ProxyPac はプロクシ自動設定ファイルを返答する。
 func (srv *Server) ProxyPac(w http.ResponseWriter, r *http.Request) {
-	b, err := ioutil.ReadFile(*proxyPac)
+	tpl, err := ttemplate.ParseFiles(*proxyPac)
 	if err != nil {
 		log.Println("ProxyPac:", err)
-		// エラーが起きた時に internal server error を返すのは恐らく本来は正しい実装だが、
-		// これによって本来意図していない場所に繋がってしまうケースがあるためあえて嘘のプロキシを返す。
-		// http.Error(w, "internal server error", http.StatusInternalServerError)
-		w.Header().Set("Content-Type", "application/x-ns-proxy-autoconfig")
-		w.Write([]byte(`// Proxy auto-config file not found.
-function FindProxyForURL(url, host) { return 'PROXY 0.0.0.0:8888'; }`))
+		renderError(err, w)
 		return
 	}
-	w.Header().Set("Content-Type", "application/x-ns-proxy-autoconfig")
-	w.Write(b)
+	//	w.Header().Set("Content-Type", "application/x-ns-proxy-autoconfig")
+	err = tpl.Execute(w, map[string]interface{}{
+		"IPAddress": *address,
+		"BasePort":  *proxyPort,
+		"NumPorts":  *proxyPorts,
+	})
+	if err != nil {
+		log.Println("ProxyPac:", err)
+		renderError(err, w)
+		return
+	}
 }
 
 // HTTP の Connect メソッドの実装。Connect のリクエストだがコードを使いまわすため先は SOCKS プロキシで繋ぐ。
@@ -518,7 +469,8 @@ func watch() error {
 }
 
 var (
-	proxyPac       = flag.String("pac", "", "proxy.pac template file")
+	proxyPac       = flag.String("pac", "proxy.pac", "proxy.pac template file")
+	proxyHtml      = flag.String("html", "proxy.html", "proxy.html template file")
 	configFilename = flag.String("c", "config.toml", "configuration filename")
 	proxyPort      = flag.Int("proxy_port", 40000, "proxy port number")
 	proxyPorts     = flag.Int("ports", 4, "listening ports")

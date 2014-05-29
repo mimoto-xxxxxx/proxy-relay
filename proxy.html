@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ja">
+<meta charset="utf-8">
+<title>プロキシについて</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet">
+<script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+<body>
+  <div class="container">
+    <h1>プロキシについて</h1>
+
+    <p><button type="button" class="btn btn-primary" onclick="location.href='/reload';return false">設定をリロード</button></p>
+
+    <h2>現在使用しているプロキシ</h2>
+    <p>現在以下のプロキシを使用しています。</p>
+    <table class="table table-bordered">
+      <tbody>
+        <tr>
+          <th>設定名</th>
+          <td>
+            {{.Config.UseProxy}}
+          </td>
+        </tr>
+        <tr>
+          <th>ホスト名</th>
+          <td>
+            {{.Proxy.Host}}:{{.Proxy.HTTPPort}}<small class="text-muted">(HTTP)</small><br>
+            {{.Proxy.Host}}:{{.Proxy.SOCKSPort}}<small class="text-muted">(SOCKS)</small>
+          </td>
+        </tr>
+        <tr>
+          <th>ユーザー名</th>
+          <td>{{.Proxy.Username}}</td>
+        </tr>
+        <tr>
+          <th>パスワード</th>
+          <td>{{.Proxy.Password}}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>リバースプロキシマッピング</h2>
+    <p>マップ元に接続するとプロキシ設定なしで直接目的の場所に接続できます。</p>
+    <table class="table table-bordered table-hover">
+      <thead>
+        <tr>
+          <th>マップ元</th>
+          <th>接続先</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{$ipaddr := .IPAddress}}
+        {{range .Config.ReverseMap}}
+          <tr>
+            <td>{{$ipaddr}}:{{.Port}}</td>
+            <td>{{.ConnectTo}}</td>
+          </tr>
+        {{else}}
+          <tr>
+            <td colspan="2">現在有効なマッピング設定はありません。</td>
+          </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>
