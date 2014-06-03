@@ -8,6 +8,16 @@ reverse = [
   "41001->images:22",
 ]
 
+# プロキシ除外設定
+# 以下のドメインに対してはプロキシを経由せずに接続
+direct_hosts = [
+  "ajax.googleapis.com",
+  "ajax.aspnetcdn.com",
+  "netdna.bootstrapcdn.com",
+  "cdnjs.cloudflare.com",
+  "api.bootswatch.com",
+]
+
 # 接続先になる既存のプロキシの設定例
 
 [proxies.example]
