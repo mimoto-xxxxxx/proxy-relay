@@ -111,9 +111,9 @@ func (rl *relay) watch() error {
 				done <- err
 				return
 			case <-t:
-			if err := rl.reload(); err != nil {
-				log.Println(err)
-			}
+				if err := rl.reload(); err != nil {
+					log.Println(err)
+				}
 			}
 		}
 	}()

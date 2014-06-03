@@ -1,8 +1,8 @@
 package main
 
 import (
-  "net/http"
-  "html/template"
+	"html/template"
+	"net/http"
 )
 
 const htmlTemplate = `
@@ -60,10 +60,10 @@ const htmlTemplate = `
       </thead>
       <tbody>
         {{$ipaddr := .IPAddress}}
-        {{range .Config.ReverseMap}}
+        {{range $k, $v := .Config.ReverseMap}}
           <tr>
-            <td>{{$ipaddr}}:{{.Port}}</td>
-            <td>{{.ConnectTo}}</td>
+            <td>{{$ipaddr}}:{{$k}}</td>
+            <td>{{$v}}</td>
           </tr>
         {{else}}
           <tr>

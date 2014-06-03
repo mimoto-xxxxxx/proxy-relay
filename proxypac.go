@@ -1,11 +1,11 @@
 package main
 
 import (
-  "log"
-  "fmt"
-  "net/http"
-  "encoding/json"
-  "text/template"
+	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
+	"text/template"
 )
 
 const proxyPacTemplate = `
