@@ -131,7 +131,7 @@ func main() {
 	flag.IntVar(&rl.port, "proxy_port", 40000, "proxy port number")
 	flag.IntVar(&rl.numPorts, "ports", 4, "listening ports")
 	flag.StringVar(&rl.address, "addr", "localhost", "myself address")
-	flag.StringVar(&rl.bindAddress, "bind", "", "server bind address")
+	flag.StringVar(&rl.bindAddress, "bind", "localhost", "server bind address")
 	flag.BoolVar(&rl.verbose, "v", false, "verbose output")
 	flag.Parse()
 
