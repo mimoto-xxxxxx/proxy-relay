@@ -1,3 +1,86 @@
+/*
+proxy-relay はプロキシへの接続を中継するプログラムで、ユーザー名やパスワードの入力を肩代わりします。
+
+Introduction
+
+このプログラムは別の場所にあるプロキシサーバーへの接続を補助するために使用します。
+
+	[ブラウザ] -> [プロキシサーバー] -> [HTTPサーバ]
+
+本来このような経路を辿るところを
+
+	[ブラウザ] -> [proxy-relay] -> [プロキシサーバー] -> [HTTPサーバ]
+
+上記のように介入することで、本来プロキシーサーバーに必要なユーザー名やパスワードの入力を省略したり、リバースプロキシとして動作し特定のポート番号への接続を特定のプロキシサーバへのリクエストに変形したりできます。
+
+Usage
+
+起動例は以下の通り。
+
+	proxy-relay [flag]
+
+flag には以下のようなものを指定できます。
+
+	-c="config.toml"
+		設定ファイルの場所を指定します。設定ファイルの記述に関しては後述します。
+	-proxy_port=40000
+		proxy-relay がプロキシーサーバとして待ち受けるポート番号です。
+		-ports オプションとセットで動作します。
+	-ports=4
+		proxy-relay がいくつポートを確保するのかを指定します。
+		例えば -port_port=40000 -ports=4 の時は 40000, 40001, 40002, 40003 で待ち受けます。
+	-addr="localhost"
+		proxy.pac に記載する際に必要になる、外部から見た時の proxy-relay が動作するアドレスを指定します。
+		別のマシンからのアクセスを許容する場合には -addr="192.168.1.12" などに変更する必要があります。
+	-bind="localhost"
+		待ち受ける際にバインドするアドレスを指定します。
+		別のマシンからのアクセスを許容する場合には -bind="" などに変更する必要があります。
+	-v
+		詳細なログを出力します。
+
+Configuration
+
+設定ファイル config.toml には、TOML ファイルの書式で動作に関わる様々な設定を記述できます。
+
+proxy-relay の実行中にこのファイルが編集された場合などには約1秒後に自動的に設定が再読み込みされます。
+
+	# 使用するプロキシの設定名です。
+	# [proxies.xxxxxxx] の中から使用する設定をひとつ選びます。
+	use_proxy = "example"
+
+	# リバースプロキシの設定を行います。
+	# 41000番ポートへの接続を www.example.com の22番ポートにしたい場合は "41000->www.example.com:22" のように記述します。
+	# 例えば上記設定をした上で (-addr で指定したホスト):41000 に接続すると、
+	# proxy-relay が use_proxy で指定したプロキシ設定の host:socks_port に SOCKSv5 で接続し、
+	# そこで www.example.com:22 への接続を要求します。
+	reverse = [
+	  "41000->www.example.com:22",
+	  "41001->images.example.com:22",
+	]
+
+	# プロキシ除外設定
+	# 以下に記述されたドメインに対してはプロキシを経由せずに接続します。
+	# この設定は proxy-relay が返すプロキシ自動構成スクリプト上で分岐するように出力されます。
+	direct_hosts = [
+	  "ajax.googleapis.com",
+	  "ajax.aspnetcdn.com",
+	  "netdna.bootstrapcdn.com",
+	  "cdnjs.cloudflare.com",
+	  "api.bootswatch.com",
+	]
+
+	# 接続先になるプロキシは以下のように設定します。
+	# 現在の実装ではリバースプロキシと HTTP Connect メソッドの使用時に SOCKSv5 が使用されています。
+	# それらを使用しない場合は socks_port を設定しなくても構いません。
+
+	[proxies.example]
+	host = "127.0.0.1"
+	http_port = 1080
+	socks_port = 1081
+	username = "your-user-name"
+	password = "hack-me"
+
+*/
 package main
 
 import (
