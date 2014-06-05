@@ -2,10 +2,10 @@
 use_proxy = "example"
 
 # PuTTY などでプロキシの設定をせずに繋ぐための設定
-# 41000番ポートへの接続をappの22番ポートにしたい場合は "41000->app:22"
+# 41000番ポートへの接続を www.example.com の22番ポートにしたい場合は "41000->www.example.com:22"
 reverse = [
-  "41000->app:22",
-  "41001->images:22",
+  "41000->www.example.com:22",
+  "41001->images.example.com:22",
 ]
 
 # プロキシ除外設定
@@ -26,3 +26,4 @@ http_port = 1080
 socks_port = 1081
 username = "your-user-name"
 password = "hack-me"
+
