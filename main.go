@@ -32,9 +32,8 @@ flag には以下のようなものを指定できます。
 	-addr="localhost"
 		proxy.pac に記載する際に必要になる、外部から見た時の proxy-relay が動作するアドレスを指定します。
 		別のマシンからのアクセスを許容する場合には -addr="192.168.1.12" などに変更する必要があります。
-	-bind="localhost"
+	-bind=""
 		待ち受ける際にバインドするアドレスを指定します。
-		別のマシンからのアクセスを許容する場合には -bind="" などに変更する必要があります。
 	-v
 		詳細なログを出力します。
 
@@ -214,7 +213,7 @@ func main() {
 	flag.IntVar(&rl.port, "proxy_port", 40000, "proxy port number")
 	flag.IntVar(&rl.numPorts, "ports", 4, "listening ports")
 	flag.StringVar(&rl.address, "addr", "localhost", "myself address")
-	flag.StringVar(&rl.bindAddress, "bind", "localhost", "server bind address")
+	flag.StringVar(&rl.bindAddress, "bind", "", "server bind address")
 	flag.BoolVar(&rl.verbose, "v", false, "verbose output")
 	flag.Parse()
 
