@@ -89,6 +89,7 @@ import (
 	"log"
 	"net/http"
 	"path"
+	"runtime"
 	"time"
 
 	"github.com/mimoto-xxxxxx/proxy-relay/config"
@@ -115,6 +116,7 @@ func (rl *relay) Close() error {
 	for _, srv := range rl.running {
 		srv.Close()
 	}
+	rl.running = nil
 	return nil
 }
 
@@ -129,6 +131,8 @@ func (rl *relay) reload() error {
 	if err = rl.Close(); err != nil {
 		return err
 	}
+
+  runtime.GC()
 
 	var srvs []io.Closer
 
