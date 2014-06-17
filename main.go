@@ -226,7 +226,7 @@ func main() {
 		log.Fatalln("cannot open configuration file:", err)
 	}
 
-	fmt.Printf("Listening on http://%s:%d/", rl.address, rl.port)
+	fmt.Printf("Listening on http://%s:%d/\n", rl.address, rl.port)
 	if err := rl.watch(); err != nil {
 		log.Fatalln(err)
 	}
