@@ -16,7 +16,7 @@ type SOCKS struct {
 	listener  net.Listener
 	connectTo string
 	proxy     *config.Proxy
-	closed    bool
+	closed    chan struct{}
 }
 
 // conn は SOCKS が Accept した通信の続きを担い、リバースプロキシとして振る舞うために使用される。
@@ -33,6 +33,7 @@ func NewSOCKS(connectTo string, proxy *config.Proxy) *SOCKS {
 		Logger:    log.New(os.Stderr, "", log.LstdFlags),
 		connectTo: connectTo,
 		proxy:     proxy,
+		closed:    make(chan struct{}),
 	}
 }
 
@@ -73,6 +74,12 @@ func (srv *SOCKS) serveSOCKS(l net.Listener) error {
 				time.Sleep(tempDelay)
 				continue
 			}
+			const closedMsg = "use of closed network connection"
+			msg := err.Error()
+			if msg[len(msg)-len(closedMsg):] == closedMsg {
+				srv.closed <- struct{}{}
+				return nil
+			}
 			return err
 		}
 		tempDelay = 0
@@ -87,8 +94,9 @@ func (srv *SOCKS) serveSOCKS(l net.Listener) error {
 
 // Close は Listen を終了する。
 func (srv *SOCKS) Close() error {
-	srv.closed = true
-	return srv.listener.Close()
+	err := srv.listener.Close()
+	<-srv.closed
+	return err
 }
 
 // newConn はサーバが Accept したクライアントに対応するインスタンスを用意する。
