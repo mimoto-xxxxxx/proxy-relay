@@ -36,10 +36,9 @@ func NewHTTP(proxy *config.Proxy) *HTTP {
 // Close は Listen していたポートを開放して処理を返し、goroutine 経由でクライアント接続も閉じていく。
 func (srv *HTTP) Close() error {
 	err := srv.listener.Close()
-	go func() {
-		// 維持しているコネクションも閉じる
-		srv.sig <- struct{}{}
-	}()
+	// 維持しているコネクションも閉じる
+	srv.sig <- struct{}{}
+	<-srv.sig
 	return err
 }
 
@@ -137,10 +136,12 @@ func run(server *http.Server, listener net.Listener, timeout time.Duration, c ch
 		}
 	}()
 
+	ended := make(chan struct{})
 	go func() {
 		<-c
 		server.SetKeepAlivesEnabled(false)
 		listener.Close()
+		ended <- struct{}{}
 	}()
 
 	// Serve with graceful listener
@@ -159,7 +160,7 @@ func run(server *http.Server, listener net.Listener, timeout time.Duration, c ch
 	} else {
 		<-done
 	}
-	c <- struct{}{}
+	c <- <-ended
 	return err
 }
 
